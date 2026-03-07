@@ -17,6 +17,7 @@ public class ModCreativeTabs {
                     .icon(() -> ModItems.CUSTOM_DISC.get().getDefaultInstance())
                     .displayItems((params, output) -> {
                         output.accept(ModItems.DISC_RECORDER_ITEM.get());
+                        output.accept(ModItems.UNASSEMBLED_DISC.get());
                         output.accept(ModItems.CUSTOM_DISC.get());
                     })
                     .build());

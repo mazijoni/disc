@@ -43,21 +43,43 @@ public class DiscRecorderBlockEntity extends BlockEntity implements MenuProvider
      * @return status message to send back to client
      */
     public String processDisc(Player player, String filePath, String title, float volume) {
+        // Require a blank (pressed) custom_disc in inventory
+        int blankSlot = findBlankDisc(player);
+        if (blankSlot == -1) {
+            return "need_blank";  // client shows friendly message
+        }
+
         String result = SoundRegistryHelper.processNewDisc(filePath, title);
         if (result.startsWith("OK:")) {
-            String soundId = result.substring(3); // everything after "OK:"
-            ItemStack disc = new ItemStack(ModItems.CUSTOM_DISC.get());
-            CompoundTag tag = new CompoundTag();
+            String soundId = result.substring(3);
+
+            // Encode the sound onto the blank disc in-place
+            ItemStack disc = player.getInventory().getItem(blankSlot).split(1);
+            CompoundTag tag = disc.getOrCreateTag();
             tag.putString(CustomDiscItem.NBT_SOUND_ID, soundId);
             tag.putString(CustomDiscItem.NBT_TITLE, title);
             tag.putFloat(CustomDiscItem.NBT_VOLUME, Math.max(0f, Math.min(1f, volume)));
-            disc.setTag(tag);
-            // Give to player, drop if inventory full
+
             if (!player.getInventory().add(disc)) {
                 player.drop(disc, false);
             }
             return "success:" + soundId;
         }
-        return result; // error message
+        return result;
+    }
+
+    /**
+     * Returns the first inventory slot that holds a blank custom_disc
+     * (a pressed disc with no sound_id NBT yet), or -1 if none found.
+     */
+    private int findBlankDisc(Player player) {
+        for (int i = 0; i < player.getInventory().getContainerSize(); i++) {
+            ItemStack stack = player.getInventory().getItem(i);
+            if (!stack.is(ModItems.CUSTOM_DISC.get())) continue;
+            CompoundTag tag = stack.getTag();
+            // Blank = no tag, or tag without a sound_id
+            if (tag == null || !tag.contains(CustomDiscItem.NBT_SOUND_ID)) return i;
+        }
+        return -1;
     }
 }

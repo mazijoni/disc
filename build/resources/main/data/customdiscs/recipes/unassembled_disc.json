@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "ingredients": [
+    {"item": "create:brass_sheet"},
+    {"item": "create:sturdy_sheet"}
+  ],
+  "result": {
+    "item": "customdiscs:unassembled_disc",
+    "count": 2
+  }
+}

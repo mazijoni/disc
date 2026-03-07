@@ -1,0 +1,15 @@
+{
+  "block.customdiscs.disc_recorder": "Plateristaren",
+  "item.customdiscs.custom_disc": "Eigi Tonskive",
+  "container.customdiscs.disc_recorder": "Plateristaren",
+  "customdiscs.gui.file_path": "OGG-filstig:",
+  "customdiscs.gui.song_title": "Låttittel:",
+  "customdiscs.gui.cut_disc": "Rista Plate",
+  "customdiscs.gui.available": "Innlæste lydar:",
+  "customdiscs.gui.hint": "Lim inn full stig til ei .ogg-fil",
+  "customdiscs.status.success": "Plate laga! Lastar lydar på nytt...",
+  "customdiscs.status.error_file": "Fila vart inkje funni eller er inkje ei .ogg-fil!",
+  "customdiscs.status.error_title": "Skriv inn ein låttittel!",
+  "customdiscs.status.reloading": "Lastar ressurspakkar på nytt...",
+  "item.customdiscs.custom_disc.desc": "Tonskive"
+}

@@ -9,8 +9,11 @@ license="MIT"
     modId="customdiscs"
     version="1.0.0"
     displayName="Custom Discs"
+    authors="maze_dev"
+    logoFile="customdiscs_logo.png"
     description='''
 Place a Disc Recorder block, paste a .ogg file path, and cut your own music discs!
+Requires Simple Voice Chat for 3D proximity audio.
 '''
 
 [[dependencies.customdiscs]]

@@ -193,6 +193,8 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
             String soundId = msg.substring(8);
             showStatus("§a✔ Disc created! Sound: " + soundId, false);
             SoundRegistryHelper.reloadClientSounds();
+        } else if (msg.equals("need_blank")) {
+            showStatus("§e⚠ Need a blank Custom Disc — press an Unassembled Disc first!", true);
         } else {
             showStatus("§c✘ " + msg, true);
         }

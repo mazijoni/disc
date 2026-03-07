@@ -1,0 +1,10 @@
+{
+  "type": "create:pressing",
+  "ingredients": [
+    {"item": "customdiscs:unassembled_disc"}
+  ],
+  "results": [
+    {"item": "customdiscs:custom_disc"}
+  ],
+  "processingTime": 100
+}

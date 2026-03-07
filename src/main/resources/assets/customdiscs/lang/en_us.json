@@ -1,15 +1,18 @@
 {
   "block.customdiscs.disc_recorder": "Disc Recorder",
   "item.customdiscs.custom_disc": "Custom Music Disc",
+  "item.customdiscs.unassembled_disc": "Unassembled Disc",
   "container.customdiscs.disc_recorder": "Disc Recorder",
   "customdiscs.gui.file_path": "OGG File Path:",
   "customdiscs.gui.song_title": "Song Title:",
   "customdiscs.gui.cut_disc": "Cut Disc",
   "customdiscs.gui.available": "Loaded Sounds:",
   "customdiscs.gui.hint": "Paste the full path to a .ogg file",
+  "customdiscs.gui.need_blank": "Requires a blank Custom Disc (press an Unassembled Disc first)!",
   "customdiscs.status.success": "Disc created! Reloading sounds...",
   "customdiscs.status.error_file": "File not found or not a .ogg file!",
   "customdiscs.status.error_title": "Please enter a song title!",
   "customdiscs.status.reloading": "Reloading resource packs...",
-  "item.customdiscs.custom_disc.desc": "Music Disc"
+  "item.customdiscs.custom_disc.desc": "Music Disc",
+  "item.customdiscs.unassembled_disc.desc": "Press with a Mechanical Press, then use in the Disc Recorder"
 }

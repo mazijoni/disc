@@ -18,4 +18,8 @@ public class ModItems {
 
     public static final RegistryObject<CustomDiscItem> CUSTOM_DISC = ITEMS.register("custom_disc",
             () -> new CustomDiscItem(new Item.Properties().stacksTo(1)));
+
+    /** Blank disc form — crafted from sheets, pressed into a custom_disc in the Disc Recorder. */
+    public static final RegistryObject<Item> UNASSEMBLED_DISC = ITEMS.register("unassembled_disc",
+            () -> new Item(new Item.Properties().stacksTo(64)));
 }
