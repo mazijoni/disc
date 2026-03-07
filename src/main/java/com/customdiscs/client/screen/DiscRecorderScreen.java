@@ -5,6 +5,7 @@ import com.customdiscs.network.DiscCraftPacket;
 import com.customdiscs.network.PacketHandler;
 import com.customdiscs.util.SoundRegistryHelper;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
@@ -26,6 +27,8 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
 
     private EditBox pathField;
     private EditBox titleField;
+    private AbstractSliderButton volumeSlider;
+    private float discVolume = 0.35f;  // written by the slider
     private Button cutButton;
     private Button browseButton;
     private String statusMessage = "";
@@ -64,11 +67,25 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         titleField.setHint(Component.literal("My Favourite Song"));
         this.addRenderableWidget(titleField);
 
-        // Cut Disc button
+        // Volume slider (0–100 %, default 35 %)
+        volumeSlider = new AbstractSliderButton(x + 10, y + 106, GUI_W - 20, 16,
+                Component.empty(), 0.35) {
+            @Override
+            protected void updateMessage() {
+                setMessage(Component.literal("Volume: " + Math.round(this.value * 100) + "%"));
+            }
+            @Override
+            protected void applyValue() {
+                discVolume = (float) this.value;
+            }
+        };
+        this.addRenderableWidget(volumeSlider);
+
+        // Cut Disc button — moved down to make room for the slider
         cutButton = Button.builder(
                 Component.translatable("customdiscs.gui.cut_disc"),
                 btn -> sendCraftRequest()
-        ).pos(x + GUI_W / 2 - 55, y + 112).size(110, 20).build();
+        ).pos(x + GUI_W / 2 - 55, y + 128).size(110, 20).build();
         this.addRenderableWidget(cutButton);
     }
 
@@ -167,7 +184,7 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         showStatus("Sending to server...", false);
 
         PacketHandler.CHANNEL.sendToServer(
-                new DiscCraftPacket(menu.getBlockPos(), path, title));
+                new DiscCraftPacket(menu.getBlockPos(), path, title, discVolume));
     }
 
     public void handleServerResponse(String msg) {
@@ -266,6 +283,9 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         graphics.drawString(this.font,
                 Component.translatable("customdiscs.gui.song_title"),
                 x + 10, y + 71, 0xFFAAAAAA, false);
+        graphics.drawString(this.font,
+                Component.literal("Volume"),
+                x + 10, y + 96, 0xFFAAAAAA, false);
 
         // Loaded sounds list
         graphics.drawString(this.font,

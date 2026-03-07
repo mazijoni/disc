@@ -25,9 +25,9 @@ public class VoicechatCompat {
         return loaded;
     }
 
-    public static void play(ServerLevel level, BlockPos pos, File oggFile) {
+    public static void play(ServerLevel level, BlockPos pos, File oggFile, float volume) {
         if (!isLoaded()) return;
-        JukeboxAudioManager.play(level, pos, oggFile);
+        JukeboxAudioManager.play(level, pos, oggFile, volume);
     }
 
     public static void stop(BlockPos pos) {

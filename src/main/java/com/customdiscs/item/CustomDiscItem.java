@@ -29,6 +29,7 @@ public class CustomDiscItem extends RecordItem {
 
     public static final String NBT_SOUND_ID = "sound_id";
     public static final String NBT_TITLE    = "title";
+    public static final String NBT_VOLUME   = "volume";  // float 0.0–1.0
 
     public CustomDiscItem(Properties properties) {
         // comparatorOutput=1 same as vanilla discs; dummy sound required by RecordItem ctor
@@ -60,6 +61,11 @@ public class CustomDiscItem extends RecordItem {
             if (tag.contains(NBT_SOUND_ID)) {
                 components.add(Component.literal("♪ " + tag.getString(NBT_SOUND_ID))
                         .withStyle(ChatFormatting.GRAY));
+            }
+            if (tag.contains(NBT_VOLUME)) {
+                int pct = Math.round(tag.getFloat(NBT_VOLUME) * 100);
+                components.add(Component.literal("🔊 Volume: " + pct + "%")
+                        .withStyle(ChatFormatting.AQUA));
             }
         }
         components.add(Component.translatable("item.customdiscs.custom_disc.desc")

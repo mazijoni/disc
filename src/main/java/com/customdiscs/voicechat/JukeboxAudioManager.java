@@ -24,6 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class JukeboxAudioManager {
 
+    /**
+     * Master multiplier applied on top of each disc's own volume setting.
+     * 1.0 = no additional reduction. Lower if everything still feels too loud.
+     */
+    private static final float MASTER_VOLUME = 1.0f;
+
     @Nullable
     private static VoicechatServerApi api;
 
@@ -43,11 +49,12 @@ public class JukeboxAudioManager {
      * Starts playing {@code oggFile} through a LocationalAudioChannel centred on {@code pos}.
      * Stops any existing channel at that position first.
      *
-     * @param level   the server level containing the jukebox
-     * @param pos     jukebox block position
-     * @param oggFile OGG file from the dynamic resource pack
+     * @param level      the server level containing the jukebox
+     * @param pos        jukebox block position
+     * @param oggFile    OGG file from the dynamic resource pack
+     * @param discVolume per-disc volume from NBT (0.0–1.0)
      */
-    public static void play(ServerLevel level, BlockPos pos, File oggFile) {
+    public static void play(ServerLevel level, BlockPos pos, File oggFile, float discVolume) {
         if (api == null) return;
 
         stop(pos); // stop any existing player at this position first
@@ -74,6 +81,7 @@ public class JukeboxAudioManager {
                     DiscMod.LOGGER.warn("[CustomDiscs] SVC: decoded 0 samples from {}", oggFile.getName());
                     return;
                 }
+                applyVolume(pcm, discVolume * MASTER_VOLUME);
 
                 AudioPlayer player = api.createAudioPlayer(channel, api.createEncoder(), pcm);
                 activePlayers.put(pos.asLong(), player);
@@ -103,5 +111,13 @@ public class JukeboxAudioManager {
     public static void clearAll() {
         activePlayers.values().forEach(p -> { if (p.isPlaying()) p.stopPlaying(); });
         activePlayers.clear();
+    }
+
+    /** Scales every sample by {@code scalar} in-place. */
+    private static void applyVolume(short[] pcm, float scalar) {
+        scalar = Math.max(0f, Math.min(1f, scalar)); // clamp just in case
+        for (int i = 0; i < pcm.length; i++) {
+            pcm[i] = (short) (pcm[i] * scalar);
+        }
     }
 }

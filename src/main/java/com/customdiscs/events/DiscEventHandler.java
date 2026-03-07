@@ -139,9 +139,12 @@ public class DiscEventHandler {
                     if (tag == null) return;
                     String soundId = tag.getString(CustomDiscItem.NBT_SOUND_ID);
                     String title   = tag.getString(CustomDiscItem.NBT_TITLE);
+                    // Default 0.35 for discs created before per-disc volume was added
+                    float  volume  = tag.contains(CustomDiscItem.NBT_VOLUME)
+                            ? tag.getFloat(CustomDiscItem.NBT_VOLUME) : 0.35f;
                     if (soundId.isEmpty()) return;
 
-                    DiscMod.LOGGER.debug("[CustomDiscs] Disc inserted: {} @ {}", soundId, pos);
+                    DiscMod.LOGGER.debug("[CustomDiscs] Disc inserted: {} @ {} (vol {})", soundId, pos, volume);
 
                     if (VoicechatCompat.isLoaded()) {
                         // SVC path: play through a LocationalAudioChannel for true 3D proximity audio.
@@ -150,7 +153,7 @@ public class DiscEventHandler {
                         java.io.File oggFile = com.customdiscs.util.SoundRegistryHelper.getSoundsFolder()
                                 .resolve(baseName + ".ogg").toFile();
                         if (oggFile.exists()) {
-                            VoicechatCompat.play(serverLevel, pos, oggFile);
+                            VoicechatCompat.play(serverLevel, pos, oggFile, volume);
                         } else {
                             DiscMod.LOGGER.warn("[CustomDiscs] SVC: OGG file not found: {}", oggFile);
                         }

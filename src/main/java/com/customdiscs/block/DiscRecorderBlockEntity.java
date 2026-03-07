@@ -42,7 +42,7 @@ public class DiscRecorderBlockEntity extends BlockEntity implements MenuProvider
      *
      * @return status message to send back to client
      */
-    public String processDisc(Player player, String filePath, String title) {
+    public String processDisc(Player player, String filePath, String title, float volume) {
         String result = SoundRegistryHelper.processNewDisc(filePath, title);
         if (result.startsWith("OK:")) {
             String soundId = result.substring(3); // everything after "OK:"
@@ -50,6 +50,7 @@ public class DiscRecorderBlockEntity extends BlockEntity implements MenuProvider
             CompoundTag tag = new CompoundTag();
             tag.putString(CustomDiscItem.NBT_SOUND_ID, soundId);
             tag.putString(CustomDiscItem.NBT_TITLE, title);
+            tag.putFloat(CustomDiscItem.NBT_VOLUME, Math.max(0f, Math.min(1f, volume)));
             disc.setTag(tag);
             // Give to player, drop if inventory full
             if (!player.getInventory().add(disc)) {
