@@ -11,7 +11,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
 import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.registries.ForgeRegistries;
 
 import java.util.function.Supplier;
 
@@ -77,24 +76,31 @@ public class DiscPlayPacket {
                 // Always stop any currently playing RECORDS sound first
                 mc.getSoundManager().stop(null, SoundSource.RECORDS);
 
-                if (pkt.play && !pkt.soundId.isEmpty()) {
-                    ResourceLocation loc = new ResourceLocation(pkt.soundId);
-                    SoundEvent sound = ForgeRegistries.SOUND_EVENTS.getValue(loc);
-                    if (sound != null) {
-                        // SimpleSoundInstance.forRecord = proper LINEAR 3D attenuation,
-                        // same as what vanilla jukeboxes use.
+                if (pkt.play) {
+                    // Show "Now Playing" toast regardless of whether we're playing sound here
+                    // (when SVC is active, soundId is empty but we still want the toast)
+                    if (!pkt.title.isEmpty()) {
+                        mc.gui.setNowPlaying(
+                                net.minecraft.network.chat.Component.literal(pkt.title));
+                    }
+
+                    // Only play Minecraft sound when soundId is set (non-SVC fallback path)
+                    if (!pkt.soundId.isEmpty()) {
+                        ResourceLocation loc = new ResourceLocation(pkt.soundId);
+
+                        // Do NOT use ForgeRegistries.SOUND_EVENTS.getValue(loc) here —
+                        // the client-side ForgeRegistry only contains sounds registered at
+                        // game startup. Runtime-added discs are absent from it.
+                        // The SoundManager resolves the actual audio via sounds.json;
+                        // we just need a SoundEvent that carries the correct location.
+                        SoundEvent sound = SoundEvent.createVariableRangeEvent(loc);
+
                         Vec3 center = new Vec3(
                                 pkt.pos.getX() + 0.5,
                                 pkt.pos.getY() + 0.5,
                                 pkt.pos.getZ() + 0.5);
                         mc.getSoundManager().play(
                                 SimpleSoundInstance.forRecord(sound, center));
-
-                        // Show "Now Playing" toast
-                        if (!pkt.title.isEmpty()) {
-                            mc.gui.setNowPlaying(
-                                    net.minecraft.network.chat.Component.literal(pkt.title));
-                        }
                     }
                 }
             })

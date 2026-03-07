@@ -26,3 +26,11 @@ Place a Disc Recorder block, paste a .ogg file path, and cut your own music disc
     versionRange="[1.20.1,1.21)"
     ordering="NONE"
     side="BOTH"
+
+# Optional: Simple Voice Chat — enables in-world 3D proximity audio for custom discs
+[[dependencies.customdiscs]]
+    modId="voicechat_api"
+    mandatory=false
+    versionRange="[2.5.0,)"
+    ordering="AFTER"
+    side="BOTH"

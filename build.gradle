@@ -51,11 +51,27 @@ minecraft {
 
 sourceSets.main.resources { srcDir 'src/generated/resources' }
 
-repositories { mavenCentral() }
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.maxhenkel.de/repository/public' }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content { includeGroup "maven.modrinth" }
+    }
+}
 
 dependencies {
     minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+    // Simple Voice Chat API — compile-only (optional at runtime; players need the mod installed)
+    compileOnly "de.maxhenkel.voicechat:voicechat-api:${voicechat_api_version}"
+    // JOrbis — pure-Java OGG Vorbis decoder, bundled in the mod JAR via Forge JarInJar.
+    // No external tools (ffmpeg etc.) needed — works on any OS out of the box.
+    jarJar(group: 'org.jcraft', name: 'jorbis', version: '[0.0.17,0.0.18)') { transitive = false }
+    implementation 'org.jcraft:jorbis:0.0.17'
 }
+
+jarJar.enable()
 
 jar {
     manifest {

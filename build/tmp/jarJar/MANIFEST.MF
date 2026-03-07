@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Specification-Title: customdiscs
+Specification-Vendor: customdiscs
+Specification-Version: 1
+Implementation-Title: customdiscs
+Implementation-Version: 1.0.0
+Implementation-Vendor: customdiscs
+Implementation-Timestamp: 2026-03-07T01:41:00+0100
+

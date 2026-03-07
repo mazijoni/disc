@@ -19,6 +19,7 @@ import net.minecraftforge.client.event.sound.PlaySoundEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
+import com.customdiscs.voicechat.VoicechatCompat;
 import net.minecraftforge.network.PacketDistributor;
 
 public class DiscEventHandler {
@@ -26,9 +27,17 @@ public class DiscEventHandler {
     /**
      * CLIENT — suppresses the dummy MUSIC_DISC_13 that vanilla plays when our
      * disc is inserted. The real sound is delivered by the server via DiscPlayPacket.
+     *
+     * IMPORTANT: We must ONLY suppress MUSIC_DISC_13, not every RECORDS-source sound.
+     * When DiscPlayPacket plays the real custom sound it also triggers PlaySoundEvent
+     * (source=RECORDS). If we suppress all RECORDS sounds near a jukebox we would
+     * kill our own custom audio right after starting it.
      */
     @Mod.EventBusSubscriber(value = Dist.CLIENT)
     public static class ClientHandler {
+
+        private static final net.minecraft.resources.ResourceLocation DISC_13_RL =
+                new net.minecraft.resources.ResourceLocation("minecraft", "music_disc.13");
 
         @SubscribeEvent
         @OnlyIn(Dist.CLIENT)
@@ -36,20 +45,24 @@ public class DiscEventHandler {
             SoundInstance incoming = event.getSound();
             if (incoming == null || incoming.getSource() != SoundSource.RECORDS) return;
 
+            // Only intercept the dummy MUSIC_DISC_13 placeholder.
+            // Custom sounds played by DiscPlayPacket must NOT be suppressed here.
+            if (!DISC_13_RL.equals(incoming.getLocation())) return;
+
             Minecraft mc = Minecraft.getInstance();
             if (mc.level == null) return;
 
             double sx = incoming.getX(), sy = incoming.getY(), sz = incoming.getZ();
             BlockPos pos = BlockPos.containing(sx, sy, sz);
 
-            // If our disc is in this jukebox, suppress the vanilla dummy sound.
-            // The server will send us a DiscPlayPacket with the real sound.
+            // Only suppress if the jukebox actually holds our disc
+            // (avoids muting disc 13 playing from a real vanilla jukebox nearby).
             BlockEntity be = mc.level.getBlockEntity(pos);
             if (!(be instanceof JukeboxBlockEntity jukebox)) return;
 
             ItemStack disc = jukebox.getItem(0);
             if (!disc.isEmpty() && disc.getItem() instanceof CustomDiscItem) {
-                event.setSound(null); // suppress MUSIC_DISC_13
+                event.setSound(null); // suppress dummy; DiscPlayPacket will play the real sound
             }
         }
     }
@@ -91,7 +104,10 @@ public class DiscEventHandler {
                     ((ServerLevel) event.getLevel()).dimension());
 
             if (jukeboxHasOurDisc) {
-                // Jukebox already has our disc — player is ejecting it
+                // Jukebox already has our disc — player is ejecting it.
+                // Stop SVC proximity channel (if SVC is loaded)
+                VoicechatCompat.stop(pos);
+                // Also send a DiscPlayPacket stop for the vanilla Minecraft sound path
                 PacketHandler.CHANNEL.send(
                         PacketDistributor.NEAR.with(() -> area),
                         new DiscPlayPacket(pos));  // stop packet
@@ -125,12 +141,34 @@ public class DiscEventHandler {
                     String title   = tag.getString(CustomDiscItem.NBT_TITLE);
                     if (soundId.isEmpty()) return;
 
-                    DiscMod.LOGGER.debug("[CustomDiscs] Sending DiscPlayPacket play: {} @ {}", soundId, pos);
-                    PacketHandler.CHANNEL.send(
-                            PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
-                                    pos.getX(), pos.getY(), pos.getZ(), 64,
-                                    serverLevel.dimension())),
-                            new DiscPlayPacket(pos, soundId, title));
+                    DiscMod.LOGGER.debug("[CustomDiscs] Disc inserted: {} @ {}", soundId, pos);
+
+                    if (VoicechatCompat.isLoaded()) {
+                        // SVC path: play through a LocationalAudioChannel for true 3D proximity audio.
+                        // soundId is e.g. "customdiscs:mysong" — the OGG filename is the part after ":"
+                        String baseName = soundId.contains(":") ? soundId.substring(soundId.indexOf(':') + 1) : soundId;
+                        java.io.File oggFile = com.customdiscs.util.SoundRegistryHelper.getSoundsFolder()
+                                .resolve(baseName + ".ogg").toFile();
+                        if (oggFile.exists()) {
+                            VoicechatCompat.play(serverLevel, pos, oggFile);
+                        } else {
+                            DiscMod.LOGGER.warn("[CustomDiscs] SVC: OGG file not found: {}", oggFile);
+                        }
+                        // Also send DiscPlayPacket so the vanilla sound system suppresses MUSIC_DISC_13
+                        // and shows the "Now Playing" toast — but with an empty soundId so no sound plays.
+                        PacketHandler.CHANNEL.send(
+                                PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
+                                        pos.getX(), pos.getY(), pos.getZ(), 64,
+                                        serverLevel.dimension())),
+                                new DiscPlayPacket(pos, "", title)); // empty soundId = toast only
+                    } else {
+                        // Fallback: vanilla Minecraft sound via DiscPlayPacket (no 3D attenuation on stereo files)
+                        PacketHandler.CHANNEL.send(
+                                PacketDistributor.NEAR.with(() -> new PacketDistributor.TargetPoint(
+                                        pos.getX(), pos.getY(), pos.getZ(), 64,
+                                        serverLevel.dimension())),
+                                new DiscPlayPacket(pos, soundId, title));
+                    }
                 });
             }
         }

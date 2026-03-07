@@ -178,18 +178,10 @@ public class SoundRegistryHelper {
 
         try {
             Files.createDirectories(getSoundsFolder());
-
-            // Attempt mono conversion via ffmpeg so OpenAL can spatialize the audio.
-            // Stereo OGGs play at the listener's position regardless of world coordinates.
-            boolean converted = convertToMono(source.toPath(), dest);
-            if (!converted) {
-                // ffmpeg not available — copy as-is and warn
-                Files.copy(source.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
-                DiscMod.LOGGER.warn("[CustomDiscs] ffmpeg not found — copied '{}' as stereo. "
-                        + "3D attenuation may not work. Install ffmpeg and re-cut the disc.", baseName);
-            } else {
-                DiscMod.LOGGER.info("[CustomDiscs] Converted to mono OGG: {}", dest);
-            }
+            // Copy OGG as-is. Mono downmix + 48kHz resampling happen at play-time
+            // inside OggDecoder (pure-Java JOrbis) when SVC streams the audio.
+            Files.copy(source.toPath(), dest, StandardCopyOption.REPLACE_EXISTING);
+            DiscMod.LOGGER.info("[CustomDiscs] Copied OGG to {}", dest);
 
             // Register the sound event at runtime if not already registered
             ResourceLocation rl = new ResourceLocation(DiscMod.MOD_ID, baseName);
@@ -214,52 +206,6 @@ public class SoundRegistryHelper {
         } catch (IOException e) {
             DiscMod.LOGGER.error("[CustomDiscs] Failed to copy OGG", e);
             return "IO error: " + e.getMessage();
-        }
-    }
-
-    /**
-     * Converts a stereo OGG to a mono OGG using ffmpeg.
-     * Command: ffmpeg -y -i <input> -ac 1 -c:a libvorbis -q:a 6 <output>
-     *
-     * @return true if conversion succeeded, false if ffmpeg was not found / failed.
-     */
-    private static boolean convertToMono(Path input, Path output) {
-        try {
-            ProcessBuilder pb = new ProcessBuilder(
-                "ffmpeg",
-                "-y",                  // overwrite output without asking
-                "-i", input.toString(),
-                "-ac", "1",            // downmix to 1 channel (mono)
-                "-c:a", "libvorbis",   // Vorbis codec → .ogg
-                "-q:a", "6",           // quality level (0-10, 6 ≈ 192 kbps equivalent)
-                output.toString()
-            );
-            pb.redirectErrorStream(true);
-            Process proc = pb.start();
-
-            // Drain stdout/stderr so the process doesn't block
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(proc.getInputStream()))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    DiscMod.LOGGER.debug("[ffmpeg] {}", line);
-                }
-            }
-
-            int exit = proc.waitFor();
-            if (exit != 0) {
-                DiscMod.LOGGER.warn("[CustomDiscs] ffmpeg exited with code {}", exit);
-                return false;
-            }
-            return true;
-
-        } catch (IOException e) {
-            // ffmpeg not on PATH
-            DiscMod.LOGGER.debug("[CustomDiscs] ffmpeg not available: {}", e.getMessage());
-            return false;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
         }
     }
 
