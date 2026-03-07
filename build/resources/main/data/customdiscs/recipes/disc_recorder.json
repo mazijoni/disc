@@ -1,13 +1,15 @@
 {
   "type": "minecraft:crafting_shaped",
   "pattern": [
-    " I ",
-    "IBI",
-    " I "
+    " S ",
+    "AJA",
+    "CCC"
   ],
   "key": {
-    "I": {"item": "minecraft:iron_ingot"},
-    "B": {"item": "minecraft:jukebox"}
+    "S": {"item": "create:iron_sheet"},
+    "A": {"item": "create:andesite_alloy"},
+    "J": {"item": "minecraft:jukebox"},
+    "C": {"item": "create:andesite_casing"}
   },
   "result": {"item": "customdiscs:disc_recorder"}
 }
