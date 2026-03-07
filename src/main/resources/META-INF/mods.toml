@@ -7,7 +7,7 @@ license="MIT"
 
 [[mods]]
     modId="customdiscs"
-    version="1.0.0"
+    version="1.0.1"
     displayName="Custom Discs"
     authors="maze_dev"
     logoFile="customdiscs_logo.png"
