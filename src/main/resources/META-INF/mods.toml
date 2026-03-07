@@ -1,0 +1,28 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+
+[[mixins]]
+    config="customdiscs.mixins.json"
+
+[[mods]]
+    modId="customdiscs"
+    version="1.0.0"
+    displayName="Custom Discs"
+    description='''
+Place a Disc Recorder block, paste a .ogg file path, and cut your own music discs!
+'''
+
+[[dependencies.customdiscs]]
+    modId="forge"
+    mandatory=true
+    versionRange="[47.3.0,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.customdiscs]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.20.1,1.21)"
+    ordering="NONE"
+    side="BOTH"

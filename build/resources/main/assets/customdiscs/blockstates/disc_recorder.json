@@ -1,0 +1,5 @@
+{
+  "variants": {
+    "": { "model": "customdiscs:block/disc_recorder" }
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "customdiscs.disc_recorder": {"sounds": [{"name": "customdiscs:disc_recorder", "volume": 1.0}]},
+  "customdiscs.placeholder": {"sounds": [{"name": "customdiscs:placeholder", "volume": 0.0}]}
+}
