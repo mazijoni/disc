@@ -13,7 +13,14 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'maven-publish'
 
-version = "${mod_version}"
+// Read version from mods.toml so changing it there is all that's needed
+def tomlVersion = "unknown"
+file("src/main/resources/META-INF/mods.toml").eachLine { line ->
+    def m = (line =~ /^\s*version\s*=\s*"([^"]+)"/)
+    if (m) tomlVersion = m[0][1]
+}
+
+version = tomlVersion
 group = "${mod_group_id}"
 base { archivesName = "${mod_id}" }
 
@@ -59,6 +66,9 @@ repositories {
         url = "https://api.modrinth.com/maven"
         content { includeGroup "maven.modrinth" }
     }
+    // Ponder (standalone library, separated from Create since 6.0)
+    maven { url = "https://raw.githubusercontent.com/Fuzss/modresources/main/maven/" }
+    maven { url = "https://maven.createmod.net" }
 }
 
 dependencies {
@@ -66,9 +76,10 @@ dependencies {
     // Simple Voice Chat API — compile-only (optional at runtime; players need the mod installed)
     compileOnly "de.maxhenkel.voicechat:voicechat-api:${voicechat_api_version}"
     // JOrbis — pure-Java OGG Vorbis decoder, bundled in the mod JAR via Forge JarInJar.
-    // No external tools (ffmpeg etc.) needed — works on any OS out of the box.
     jarJar(group: 'org.jcraft', name: 'jorbis', version: '[0.0.17,0.0.18)') { transitive = false }
     implementation 'org.jcraft:jorbis:0.0.17'
+    // Ponder — standalone in-game tutorial library (separated from Create since 6.0)
+    implementation(fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"))
 }
 
 jarJar.enable()

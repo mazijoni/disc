@@ -3,7 +3,7 @@ Specification-Title: customdiscs
 Specification-Vendor: customdiscs
 Specification-Version: 1
 Implementation-Title: customdiscs
-Implementation-Version: 1.0.0
+Implementation-Version: 1.0.2
 Implementation-Vendor: customdiscs
-Implementation-Timestamp: 2026-03-07T23:32:32+0100
+Implementation-Timestamp: 2026-03-08T02:37:44+0100
 

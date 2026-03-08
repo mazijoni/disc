@@ -22,13 +22,21 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
 
     private static final ResourceLocation TEXTURE =
             new ResourceLocation("customdiscs", "textures/gui/disc_recorder.png");
-    private static final int GUI_W = 256;
-    private static final int GUI_H = 210;
+
+    // Vanilla-standard panel width; height tall enough for our widgets
+    private static final int GUI_W = 200;
+    private static final int GUI_H = 200;
+
+    // Vanilla UI colours
+    private static final int COL_LABEL  = 0x404040;   // same as vanilla inventory labels
+    private static final int COL_TITLE  = 0x404040;
+    private static final int COL_SOUND  = 0x207020;   // dark green for loaded-sounds list
+    private static final int COL_STATUS = 0xFFFFFF;
 
     private EditBox pathField;
     private EditBox titleField;
     private AbstractSliderButton volumeSlider;
-    private float discVolume = 0.35f;  // written by the slider
+    private float discVolume = 0.35f;
     private Button cutButton;
     private Button browseButton;
     private String statusMessage = "";
@@ -46,29 +54,31 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         int x = this.leftPos;
         int y = this.topPos;
 
-        // Path field — slightly narrower to leave room for Browse button
-        pathField = new EditBox(this.font, x + 10, y + 45, GUI_W - 90, 18,
+        // Path field — narrower to leave room for Browse button
+        pathField = new EditBox(this.font, x + 8, y + 35, GUI_W - 78, 16,
                 Component.translatable("customdiscs.gui.file_path"));
         pathField.setMaxLength(512);
-        pathField.setHint(Component.literal("C:\\Music\\mysong.ogg"));
+        pathField.setHint(Component.literal("C:\\Music\\mysong.ogg").withStyle(
+                net.minecraft.ChatFormatting.DARK_GRAY));
         this.addRenderableWidget(pathField);
 
-        // Browse button next to the path field
+        // Browse button
         browseButton = Button.builder(
                 Component.literal("Browse..."),
                 btn -> openFileBrowser()
-        ).pos(x + GUI_W - 75, y + 44).size(65, 20).build();
+        ).pos(x + GUI_W - 68, y + 34).size(60, 18).build();
         this.addRenderableWidget(browseButton);
 
-        // Song title field
-        titleField = new EditBox(this.font, x + 10, y + 82, GUI_W - 20, 18,
+        // Song title field — 4px below path field bottom (y+35+16=y+51), label at y+57, field at y+68
+        titleField = new EditBox(this.font, x + 8, y + 68, GUI_W - 16, 16,
                 Component.translatable("customdiscs.gui.song_title"));
         titleField.setMaxLength(64);
-        titleField.setHint(Component.literal("My Favourite Song"));
+        titleField.setHint(Component.literal("My Favourite Song").withStyle(
+                net.minecraft.ChatFormatting.DARK_GRAY));
         this.addRenderableWidget(titleField);
 
-        // Volume slider (0–100 %, default 35 %)
-        volumeSlider = new AbstractSliderButton(x + 10, y + 106, GUI_W - 20, 16,
+        // Volume slider — label at y+90, slider at y+101
+        volumeSlider = new AbstractSliderButton(x + 8, y + 101, GUI_W - 16, 14,
                 Component.empty(), 0.35) {
             @Override
             protected void updateMessage() {
@@ -81,34 +91,28 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         };
         this.addRenderableWidget(volumeSlider);
 
-        // Cut Disc button — moved down to make room for the slider
+        // Cut Disc button — 6px below slider bottom (y+101+14=y+115), button at y+121
         cutButton = Button.builder(
                 Component.translatable("customdiscs.gui.cut_disc"),
                 btn -> sendCraftRequest()
-        ).pos(x + GUI_W / 2 - 55, y + 128).size(110, 20).build();
+        ).pos(x + GUI_W / 2 - 50, y + 121).size(100, 20).build();
         this.addRenderableWidget(cutButton);
     }
 
-    /**
-     * Opens the native Windows file picker by running a PowerShell subprocess.
-     * PowerShell shows a real Windows.Forms OpenFileDialog and prints the chosen
-     * path to stdout. We read that on a background thread and pump the result
-     * back to Minecraft's main thread. Works even while LWJGL owns the display.
-     */
+    // ─── File picker ────────────────────────────────────────────────────────────
+
     private void openFileBrowser() {
         browseButton.active = false;
         showStatus("Opening file browser...", false);
 
         Thread t = new Thread(() -> {
             try {
-                // Build the PowerShell one-liner that opens a native file dialog
                 String psScript =
                     "Add-Type -AssemblyName System.Windows.Forms;" +
                     "$d = New-Object System.Windows.Forms.OpenFileDialog;" +
                     "$d.Title = 'Select an OGG audio file';" +
                     "$d.Filter = 'OGG Audio (*.ogg)|*.ogg';" +
                     "$d.Multiselect = $false;" +
-                    // Try to pre-open the folder of any existing path in the box
                     (pathField.getValue().trim().isEmpty() ? "" :
                         "$d.InitialDirectory = [System.IO.Path]::GetDirectoryName('" +
                         pathField.getValue().trim().replace("'", "''") + "');") +
@@ -134,12 +138,10 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
                 proc.waitFor();
 
                 final String result = chosen;
-                // Post back to Minecraft main thread
                 this.minecraft.execute(() -> {
                     browseButton.active = true;
                     if (result != null && !result.isEmpty()) {
                         pathField.setValue(result);
-                        // Auto-fill title from filename if title field is empty
                         if (titleField.getValue().trim().isEmpty()) {
                             File f = new File(result);
                             String name = f.getName();
@@ -166,6 +168,7 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         t.start();
     }
 
+    // ─── Craft ──────────────────────────────────────────────────────────────────
 
     private void sendCraftRequest() {
         String path  = pathField.getValue().trim();
@@ -191,7 +194,7 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         cutButton.active = true;
         if (msg.startsWith("success:")) {
             String soundId = msg.substring(8);
-            showStatus("§a✔ Disc created! Sound: " + soundId, false);
+            showStatus("§a✔ Disc created: " + soundId, false);
             SoundRegistryHelper.reloadClientSounds();
         } else if (msg.equals("need_blank")) {
             showStatus("§e⚠ Need a blank Custom Disc — press an Unassembled Disc first!", true);
@@ -205,26 +208,21 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         this.statusTime    = System.currentTimeMillis();
     }
 
-    // -------------------------------------------------------------------------
-    // Fix: prevent inventory key (E) and other hotkeys from closing the GUI
-    // while the player is typing in a text field.
-    // -------------------------------------------------------------------------
+    // ─── Input routing (keep hotkeys from closing GUI while typing) ───────────
+
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean pathFocused  = pathField  != null && pathField.isFocused();
         boolean titleFocused = titleField != null && titleField.isFocused();
 
         if (pathFocused || titleFocused) {
-            // Escape: unfocus the active field (don't close the GUI)
-            if (keyCode == 256) {
+            if (keyCode == 256) {           // Escape → unfocus, don't close
                 setFocused(null);
                 if (pathFocused)  pathField.setFocused(false);
                 if (titleFocused) titleField.setFocused(false);
                 return true;
             }
-
-            // Tab: cycle between fields
-            if (keyCode == 258) {
+            if (keyCode == 258) {           // Tab → cycle fields
                 if (pathFocused) {
                     pathField.setFocused(false);
                     titleField.setFocused(true);
@@ -236,26 +234,21 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
                 }
                 return true;
             }
-
-            // Route all other keys directly to the focused field,
-            // SKIPPING AbstractContainerScreen's hotkey processing entirely
             if (pathFocused)  return pathField.keyPressed(keyCode, scanCode, modifiers);
             if (titleFocused) return titleField.keyPressed(keyCode, scanCode, modifiers);
         }
-
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean charTyped(char c, int modifiers) {
-        if (pathField != null && pathField.isFocused())   return pathField.charTyped(c, modifiers);
+        if (pathField  != null && pathField.isFocused())  return pathField.charTyped(c, modifiers);
         if (titleField != null && titleField.isFocused()) return titleField.charTyped(c, modifiers);
         return super.charTyped(c, modifiers);
     }
 
-    // -------------------------------------------------------------------------
-    // Rendering
-    // -------------------------------------------------------------------------
+    // ─── Rendering ──────────────────────────────────────────────────────────────
+
     @Override
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         this.renderBackground(graphics);
@@ -268,54 +261,68 @@ public class DiscRecorderScreen extends AbstractContainerScreen<DiscRecorderMenu
         int x = this.leftPos;
         int y = this.topPos;
 
-        // Background panels
-        graphics.fill(x, y, x + GUI_W, y + GUI_H, 0xFF1A1A2E);
-        graphics.fill(x + 2, y + 2, x + GUI_W - 2, y + GUI_H - 2, 0xFF16213E);
+        // ── Vanilla-style stone-grey panel built from fills ──────────────────
+        // Outer dark border
+        graphics.fill(x,             y,             x + GUI_W,     y + GUI_H,     0xFF373737);
+        // Main grey face
+        graphics.fill(x + 1,         y + 1,         x + GUI_W - 1, y + GUI_H - 1, 0xFFC6C6C6);
+        // Top-left inner shadow (dark)
+        graphics.fill(x + 1,         y + 1,         x + GUI_W - 1, y + 2,         0xFF8B8B8B);
+        graphics.fill(x + 1,         y + 1,         x + 2,         y + GUI_H - 1, 0xFF8B8B8B);
+        // Bottom-right inner highlight (bright)
+        graphics.fill(x + GUI_W - 2, y + 1,         x + GUI_W - 1, y + GUI_H - 1, 0xFFFFFFFF);
+        graphics.fill(x + 1,         y + GUI_H - 2, x + GUI_W - 1, y + GUI_H - 1, 0xFFFFFFFF);
 
-        // Header bar
-        graphics.fill(x, y, x + GUI_W, y + 26, 0xFF0F3460);
-        graphics.drawString(this.font,
-                Component.translatable("container.customdiscs.disc_recorder"),
-                x + 8, y + 8, 0xFFE94560, false);
+        // ── Horizontal title separator line ──────────────────────────────────
+        graphics.fill(x + 2,         y + 19,        x + GUI_W - 2, y + 20,        0xFF8B8B8B);
+        graphics.fill(x + 2,         y + 20,        x + GUI_W - 2, y + 21,        0xFFFFFFFF);
 
-        // Section labels
+        // ── Section labels ────────────────────────────────────────────────────
         graphics.drawString(this.font,
                 Component.translatable("customdiscs.gui.file_path"),
-                x + 10, y + 34, 0xFFAAAAAA, false);
+                x + 8, y + 25, COL_LABEL, false);      // label above path field (y+35)
         graphics.drawString(this.font,
                 Component.translatable("customdiscs.gui.song_title"),
-                x + 10, y + 71, 0xFFAAAAAA, false);
+                x + 8, y + 57, COL_LABEL, false);      // label above title field (y+68)
         graphics.drawString(this.font,
                 Component.literal("Volume"),
-                x + 10, y + 96, 0xFFAAAAAA, false);
+                x + 8, y + 90, COL_LABEL, false);      // label above slider (y+101)
 
-        // Loaded sounds list
+        // ── Thin separator above sounds list ─────────────────────────────────
+        graphics.fill(x + 2,  y + 147, x + GUI_W - 2, y + 148, 0xFF8B8B8B);
+        graphics.fill(x + 2,  y + 148, x + GUI_W - 2, y + 149, 0xFFFFFFFF);
+
+        // ── Loaded sounds list ────────────────────────────────────────────────
         graphics.drawString(this.font,
                 Component.translatable("customdiscs.gui.available"),
-                x + 10, y + 142, 0xFF888888, false);
+                x + 8, y + 152, COL_LABEL, false);
 
         List<String> sounds = SoundRegistryHelper.getLoadedSoundNames();
-        int listY = y + 153;
+        int listY = y + 163;
         for (int i = 0; i < Math.min(sounds.size(), 3); i++) {
-            graphics.drawString(this.font, "♪ " + sounds.get(i), x + 14, listY, 0xFF4CAF50, false);
+            graphics.drawString(this.font, "♪ " + sounds.get(i), x + 12, listY, COL_SOUND, false);
             listY += 10;
         }
         if (sounds.size() > 3) {
             graphics.drawString(this.font, "... and " + (sounds.size() - 3) + " more",
-                    x + 14, listY, 0xFF666666, false);
+                    x + 12, listY, COL_LABEL, false);
         }
         if (sounds.isEmpty()) {
-            graphics.drawString(this.font, "(none yet)", x + 14, listY, 0xFF555555, false);
+            graphics.drawString(this.font, "(none yet)", x + 12, listY, 0xFF888888, false);
         }
 
-        // Status message (disappears after 6s)
+        // ── Status bar at the bottom ──────────────────────────────────────────
         if (!statusMessage.isEmpty() && System.currentTimeMillis() - statusTime < 6000) {
-            graphics.drawString(this.font, statusMessage, x + 10, y + 196, 0xFFFFFFFF, false);
+            // thin recessed bar at the very bottom
+            graphics.fill(x + 2, y + GUI_H - 14, x + GUI_W - 2, y + GUI_H - 2, 0xFF8B8B8B);
+            graphics.drawString(this.font, statusMessage,
+                    x + 5, y + GUI_H - 12, COL_STATUS, false);
         }
     }
 
     @Override
     protected void renderLabels(GuiGraphics graphics, int mouseX, int mouseY) {
-        // skip default labels (we draw our own in renderBg)
+        // Title drawn at the vanilla position (8, 6) above the separator line
+        graphics.drawString(this.font, this.title, 8, 7, COL_TITLE, false);
     }
 }

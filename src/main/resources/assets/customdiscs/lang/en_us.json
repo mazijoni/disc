@@ -1,4 +1,5 @@
 {
+  "itemGroup.customdiscs": "Custom Discs",
   "block.customdiscs.disc_recorder": "Disc Recorder",
   "item.customdiscs.custom_disc": "Custom Music Disc",
   "item.customdiscs.unassembled_disc": "Unassembled Disc",
@@ -14,5 +15,18 @@
   "customdiscs.status.error_title": "Please enter a song title!",
   "customdiscs.status.reloading": "Reloading resource packs...",
   "item.customdiscs.custom_disc.desc": "Music Disc",
-  "item.customdiscs.unassembled_disc.desc": "Press with a Mechanical Press, then use in the Disc Recorder"
+  "item.customdiscs.unassembled_disc.desc": "Press with a Mechanical Press, then use in the Disc Recorder",
+
+  "_comment_ponder": "Ponder scene overlay texts (auto-keyed by scene ID + text index)",
+
+  "customdiscs.ponder.disc_crafting.text_1": "Combine a Brass Sheet and a Sturdy Sheet in a crafting table",
+  "customdiscs.ponder.disc_crafting.text_2": "The result is an Unassembled Disc — it needs to be pressed into shape",
+  "customdiscs.ponder.disc_crafting.text_3": "Place the Unassembled Disc under a Create Mechanical Press and power it",
+  "customdiscs.ponder.disc_crafting.text_4": "The press shapes it into a blank Custom Disc — ready to be encoded with music",
+
+  "customdiscs.ponder.disc_recording.text_1": "Place a Disc Recorder and right-click to open its interface",
+  "customdiscs.ponder.disc_recording.text_2": "Make sure you have a blank Custom Disc in your inventory before recording",
+  "customdiscs.ponder.disc_recording.text_3": "Enter the path to an OGG audio file on your computer, or use the Browse button",
+  "customdiscs.ponder.disc_recording.text_4": "Give the track a title, optionally adjust volume, then click Cut Disc",
+  "customdiscs.ponder.disc_recording.text_5": "Insert the encoded disc into a Jukebox — music plays with 3D proximity audio via Simple Voice Chat!"
 }
