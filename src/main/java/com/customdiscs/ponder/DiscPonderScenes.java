@@ -61,7 +61,7 @@ public class DiscPonderScenes {
 
         scene.world().setBlock(util.grid().at(2, 1, 2), depot.defaultBlockState(), false);
         scene.world().setBlock(util.grid().at(2, 3, 2), press.defaultBlockState(), false);
-        scene.world().showSection(util.select().fromTo(2, 1, 2, 2, 2, 2), Direction.DOWN);
+        scene.world().showSection(util.select().fromTo(2, 1, 2, 2, 3, 2), Direction.DOWN);
         scene.idle(15);
 
         scene.overlay().showText(70)
