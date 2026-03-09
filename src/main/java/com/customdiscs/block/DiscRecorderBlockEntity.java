@@ -69,6 +69,36 @@ public class DiscRecorderBlockEntity extends BlockEntity implements MenuProvider
     }
 
     /**
+     * Called from the server-side OggUploadPacket handler.
+     * Processes a complete OGG file that was uploaded by the client in chunks.
+     *
+     * @return status message to send back to client
+     */
+    public String processDiscFromBytes(Player player, byte[] oggBytes, String title, float volume) {
+        int blankSlot = findBlankDisc(player);
+        if (blankSlot == -1) {
+            return "need_blank";
+        }
+
+        String result = SoundRegistryHelper.processNewDiscFromBytes(oggBytes, title);
+        if (result.startsWith("OK:")) {
+            String soundId = result.substring(3);
+
+            ItemStack disc = player.getInventory().getItem(blankSlot).split(1);
+            CompoundTag tag = disc.getOrCreateTag();
+            tag.putString(CustomDiscItem.NBT_SOUND_ID, soundId);
+            tag.putString(CustomDiscItem.NBT_TITLE, title);
+            tag.putFloat(CustomDiscItem.NBT_VOLUME, Math.max(0f, Math.min(1f, volume)));
+
+            if (!player.getInventory().add(disc)) {
+                player.drop(disc, false);
+            }
+            return "success:" + soundId;
+        }
+        return result;
+    }
+
+    /**
      * Returns the first inventory slot that holds a blank custom_disc
      * (a pressed disc with no sound_id NBT yet), or -1 if none found.
      */

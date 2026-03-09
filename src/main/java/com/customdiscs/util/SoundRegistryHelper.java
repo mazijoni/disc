@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -134,6 +135,9 @@ public class SoundRegistryHelper {
     // AddPackFindersEvent — expose dynamic folder as a resource pack
     // -------------------------------------------------------------------------
     public static void registerDynamicPack(AddPackFindersEvent event) {
+        // This method registers CLIENT-side resource packs and must only run on the client.
+        // On a dedicated server, AddPackFindersEvent fires for SERVER_DATA, so the guard
+        // below makes this a no-op there — but we add an explicit dist check for safety.
         if (event.getPackType() != PackType.CLIENT_RESOURCES) return;
         Path root = getDynamicPackRoot();
         ensureFolderExists();
@@ -205,6 +209,55 @@ public class SoundRegistryHelper {
 
         } catch (IOException e) {
             DiscMod.LOGGER.error("[CustomDiscs] Failed to copy OGG", e);
+            return "IO error: " + e.getMessage();
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Called server-side when a client finishes uploading OGG bytes.
+    // oggBytes is the fully assembled file; title is used as the base name.
+    // Returns "OK:<sound_id>" on success, or an error string.
+    // -------------------------------------------------------------------------
+    public static String processNewDiscFromBytes(byte[] oggBytes, String title) {
+        if (oggBytes == null || oggBytes.length == 0) {
+            return "Empty file data received";
+        }
+
+        String rawBase = sanitizeSoundId(title);
+        if (rawBase.isEmpty()) rawBase = "disc_" + System.currentTimeMillis();
+        String baseName = rawBase;
+        String soundId  = DiscMod.MOD_ID + ":" + baseName;
+        Path dest = getSoundsFolder().resolve(baseName + ".ogg");
+
+        try {
+            Files.createDirectories(getSoundsFolder());
+            Files.write(dest, oggBytes, StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+            DiscMod.LOGGER.info("[CustomDiscs] Saved uploaded OGG ({} bytes) to {}",
+                    oggBytes.length, dest);
+
+            // Register the sound event at runtime if not already registered
+            ResourceLocation rl = new ResourceLocation(DiscMod.MOD_ID, baseName);
+            if (ForgeRegistries.SOUND_EVENTS.getValue(rl) == null) {
+                try {
+                    var registry = (net.minecraftforge.registries.ForgeRegistry<SoundEvent>)
+                            ForgeRegistries.SOUND_EVENTS;
+                    registry.unfreeze();
+                    registry.register(rl, SoundEvent.createVariableRangeEvent(rl));
+                    registry.freeze();
+                    loadedNames.add(baseName);
+                    DiscMod.LOGGER.info("[CustomDiscs] Runtime-registered sound: {}", rl);
+                } catch (Exception e) {
+                    DiscMod.LOGGER.warn("[CustomDiscs] Could not runtime-register sound. " +
+                            "Restart required. {}", e.getMessage());
+                }
+            }
+
+            regenerateSoundsJson();
+            return "OK:" + soundId;
+
+        } catch (IOException e) {
+            DiscMod.LOGGER.error("[CustomDiscs] Failed to save uploaded OGG", e);
             return "IO error: " + e.getMessage();
         }
     }

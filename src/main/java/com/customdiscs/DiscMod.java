@@ -31,9 +31,15 @@ public class DiscMod {
         ModCreativeTabs.TABS.register(modBus);
 
         modBus.addListener(this::commonSetup);
-        modBus.addListener(this::clientSetup);
-        modBus.addListener(this::addPackFinders);
         modBus.addListener(SoundRegistryHelper::onRegisterSounds);
+
+        // Client-only listeners: never register on a dedicated server.
+        // registerDynamicPack touches CLIENT_RESOURCES packs; clientSetup
+        // registers screens and key-bindings that do not exist server-side.
+        DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
+            modBus.addListener(this::clientSetup);
+            modBus.addListener(this::addPackFinders);
+        });
 
         MinecraftForge.EVENT_BUS.register(this);
     }

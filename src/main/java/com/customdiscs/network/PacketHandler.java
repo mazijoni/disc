@@ -23,5 +23,7 @@ public class PacketHandler {
                 DiscResponsePacket::encode, DiscResponsePacket::decode, DiscResponsePacket::handle);
         CHANNEL.registerMessage(id++, DiscPlayPacket.class,
                 DiscPlayPacket::encode, DiscPlayPacket::decode, DiscPlayPacket::handle);
+        CHANNEL.registerMessage(id++, OggUploadPacket.class,
+                OggUploadPacket::encode, OggUploadPacket::decode, OggUploadPacket::handle);
     }
 }
