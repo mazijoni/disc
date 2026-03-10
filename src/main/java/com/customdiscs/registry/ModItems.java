@@ -22,4 +22,8 @@ public class ModItems {
     /** Blank disc form — crafted from sheets, pressed into a custom_disc in the Disc Recorder. */
     public static final RegistryObject<Item> UNASSEMBLED_DISC = ITEMS.register("unassembled_disc",
             () -> new Item(new Item.Properties().stacksTo(64)));
+
+    public static final RegistryObject<Item> TRAIN_SPEAKER_ITEM = ITEMS.register("train_speaker",
+            () -> new BlockItem(ModBlocks.TRAIN_SPEAKER.get(),
+                    new Item.Properties().stacksTo(64)));
 }

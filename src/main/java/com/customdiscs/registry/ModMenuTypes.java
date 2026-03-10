@@ -2,6 +2,8 @@ package com.customdiscs.registry;
 
 import com.customdiscs.DiscMod;
 import com.customdiscs.menu.DiscRecorderMenu;
+import com.customdiscs.menu.TrainSpeakerMenu;
+import net.minecraft.core.BlockPos;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraftforge.common.extensions.IForgeMenuType;
 import net.minecraftforge.registries.DeferredRegister;
@@ -16,4 +18,11 @@ public class ModMenuTypes {
             MENUS.register("disc_recorder",
                     () -> IForgeMenuType.create((windowId, inv, data) ->
                             new DiscRecorderMenu(windowId, data.readBlockPos())));
+
+    public static final RegistryObject<MenuType<TrainSpeakerMenu>> TRAIN_SPEAKER_MENU =
+            MENUS.register("train_speaker",
+                    () -> IForgeMenuType.create((windowId, inv, data) -> {
+                        BlockPos pos = data.readBlockPos();
+                        return new TrainSpeakerMenu(windowId, pos, data);
+                    }));
 }

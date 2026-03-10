@@ -16,4 +16,10 @@ public class ModSounds {
             SOUNDS.register("placeholder",
                     () -> SoundEvent.createVariableRangeEvent(
                             new ResourceLocation(DiscMod.MOD_ID, "placeholder")));
+
+    /** Chime played by the Train Announcement Speaker before each announcement. */
+    public static final RegistryObject<SoundEvent> DING =
+            SOUNDS.register("train_speaker.ding",
+                    () -> SoundEvent.createVariableRangeEvent(
+                            new ResourceLocation(DiscMod.MOD_ID, "train_speaker.ding")));
 }

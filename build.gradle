@@ -78,8 +78,18 @@ dependencies {
     // JOrbis — pure-Java OGG Vorbis decoder, bundled in the mod JAR via Forge JarInJar.
     jarJar(group: 'org.jcraft', name: 'jorbis', version: '[0.0.17,0.0.18)') { transitive = false }
     implementation 'org.jcraft:jorbis:0.0.17'
+    // Edge TTS — free neural text-to-speech using Microsoft Edge's voices (no API key).
+    // Bundled via Forge JarInJar so players don't need to install anything extra.
+    jarJar(group: 'io.github.whitemagic2014', name: 'tts-edge-java', version: '[1.3.3,2.0.0)') { transitive = false }
+    implementation 'io.github.whitemagic2014:tts-edge-java:1.3.3'
+    // Java-WebSocket — required by tts-edge-java for its WebSocket connection to MS servers.
+    jarJar(group: 'org.java-websocket', name: 'Java-WebSocket', version: '[1.5.4,2.0.0)') { transitive = false }
+    implementation 'org.java-websocket:Java-WebSocket:1.5.4'
     // Ponder — standalone in-game tutorial library (separated from Create since 6.0)
     implementation(fg.deobf("net.createmod.ponder:Ponder-Forge-${minecraft_version}:${ponder_version}"))
+    // Create — compileOnly so we can implement DisplayTarget (Display Link integration).
+    // Players must have Create installed for display-link features to function.
+    compileOnly(fg.deobf("com.simibubi.create:create-${minecraft_version}:6.0.8-291:slim")) { transitive = false }
 }
 
 jarJar.enable()

@@ -48,6 +48,10 @@ public class DiscMod {
         event.enqueueWork(() -> {
             PacketHandler.register();
             SoundRegistryHelper.ensureFolderExists();
+            // Register Create Display Link target if Create is installed
+            if (net.minecraftforge.fml.ModList.get().isLoaded("create")) {
+                com.customdiscs.compat.create.CreateCompat.register();
+            }
         });
     }
 

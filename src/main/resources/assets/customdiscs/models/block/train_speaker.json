@@ -1,0 +1,12 @@
+{
+  "parent": "block/cube",
+  "textures": {
+    "particle": "customdiscs:block/train_speaker_side",
+    "down":     "customdiscs:block/train_speaker_side",
+    "up":       "customdiscs:block/train_speaker_side",
+    "north":    "customdiscs:block/train_speaker_front",
+    "south":    "customdiscs:block/train_speaker_side",
+    "east":     "customdiscs:block/train_speaker_side",
+    "west":     "customdiscs:block/train_speaker_side"
+  }
+}

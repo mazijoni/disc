@@ -1,0 +1,8 @@
+{
+  "variants": {
+    "facing=north": { "model": "customdiscs:block/train_speaker", "y": 0   },
+    "facing=east":  { "model": "customdiscs:block/train_speaker", "y": 90  },
+    "facing=south": { "model": "customdiscs:block/train_speaker", "y": 180 },
+    "facing=west":  { "model": "customdiscs:block/train_speaker", "y": 270 }
+  }
+}

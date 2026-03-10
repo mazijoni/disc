@@ -2,6 +2,7 @@ package com.customdiscs.registry;
 
 import com.customdiscs.DiscMod;
 import com.customdiscs.block.DiscRecorderBlock;
+import com.customdiscs.block.TrainSpeakerBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
@@ -19,5 +20,12 @@ public class ModBlocks {
                     .mapColor(MapColor.WOOD)
                     .strength(2.5f)
                     .sound(SoundType.WOOD)
+                    .requiresCorrectToolForDrops()));
+
+    public static final RegistryObject<Block> TRAIN_SPEAKER = BLOCKS.register("train_speaker",
+            () -> new TrainSpeakerBlock(BlockBehaviour.Properties.of()
+                    .mapColor(MapColor.METAL)
+                    .strength(3.0f)
+                    .sound(SoundType.METAL)
                     .requiresCorrectToolForDrops()));
 }

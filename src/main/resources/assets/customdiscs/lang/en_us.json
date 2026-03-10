@@ -28,5 +28,10 @@
   "customdiscs.ponder.disc_recording.text_2": "Make sure you have a blank Custom Disc in your inventory before recording",
   "customdiscs.ponder.disc_recording.text_3": "Enter the path to an OGG audio file on your computer, or use the Browse button",
   "customdiscs.ponder.disc_recording.text_4": "Give the track a title, optionally adjust volume, then click Cut Disc",
-  "customdiscs.ponder.disc_recording.text_5": "Insert the encoded disc into a Jukebox — music plays with 3D proximity audio via Simple Voice Chat!"
+  "customdiscs.ponder.disc_recording.text_5": "Insert the encoded disc into a Jukebox — music plays with 3D proximity audio via Simple Voice Chat!",
+
+  "block.customdiscs.train_speaker": "Train Announcement Speaker",
+  "container.customdiscs.train_speaker": "Train Announcement Speaker",
+  "gui.customdiscs.train_speaker.save": "Save",
+  "gui.customdiscs.train_speaker.test": "▶ Test"
 }
