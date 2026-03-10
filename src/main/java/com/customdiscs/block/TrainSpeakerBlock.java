@@ -15,8 +15,6 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.RenderShape;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityTicker;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -27,11 +25,12 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.network.NetworkHooks;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Map;
+
 public class TrainSpeakerBlock extends BaseEntityBlock {
 
     public static final DirectionProperty FACING = HorizontalDirectionalBlock.FACING;
 
-    // A box: 2px inset on sides, 10px tall, full depth
     private static final VoxelShape SHAPE_NORTH = Block.box(2, 0, 4, 14, 10, 16);
     private static final VoxelShape SHAPE_SOUTH = Block.box(2, 0, 0, 14, 10, 12);
     private static final VoxelShape SHAPE_WEST  = Block.box(4, 0, 2, 16, 10, 14);
@@ -64,22 +63,12 @@ public class TrainSpeakerBlock extends BaseEntityBlock {
     }
 
     @Override
-    public RenderShape getRenderShape(BlockState state) {
-        return RenderShape.MODEL;
-    }
+    public RenderShape getRenderShape(BlockState state) { return RenderShape.MODEL; }
 
     @Nullable
     @Override
     public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new TrainSpeakerBlockEntity(pos, state);
-    }
-
-    @Nullable
-    @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state,
-                                                                   BlockEntityType<T> type) {
-        return createTickerHelper(type, ModBlockEntities.TRAIN_SPEAKER_BE.get(),
-                TrainSpeakerBlockEntity::tick);
     }
 
     @Override
@@ -90,10 +79,12 @@ public class TrainSpeakerBlock extends BaseEntityBlock {
             if (be instanceof TrainSpeakerBlockEntity speakerBE && player instanceof ServerPlayer sp) {
                 NetworkHooks.openScreen(sp, speakerBE, buf -> {
                     buf.writeBlockPos(pos);
-                    buf.writeUtf(speakerBE.getStationName(), 256);
-                    java.util.List<String> stops = speakerBE.getStopList();
-                    buf.writeVarInt(stops.size());
-                    for (String s : stops) buf.writeUtf(s, 256);
+                    Map<String, String> ann = speakerBE.getCustomAnnouncements();
+                    buf.writeVarInt(ann.size());
+                    for (var e : ann.entrySet()) {
+                        buf.writeUtf(e.getKey(), 256);
+                        buf.writeUtf(e.getValue(), 512);
+                    }
                 });
             }
         }
@@ -101,21 +92,8 @@ public class TrainSpeakerBlock extends BaseEntityBlock {
     }
 
     @Override
-    public void neighborChanged(BlockState state, Level level, BlockPos pos, Block block,
-                                BlockPos fromPos, boolean isMoving) {
-        if (!level.isClientSide) {
-            BlockEntity be = level.getBlockEntity(pos);
-            if (be instanceof TrainSpeakerBlockEntity speaker) {
-                speaker.onNeighborChanged(level, pos);
-            }
-        }
-    }
-
-    @Override
     public void onRemove(BlockState state, Level level, BlockPos pos,
                          BlockState newState, boolean movedByPiston) {
-        if (!state.is(newState.getBlock())) {
-            level.removeBlockEntity(pos);
-        }
+        if (!state.is(newState.getBlock())) level.removeBlockEntity(pos);
     }
 }

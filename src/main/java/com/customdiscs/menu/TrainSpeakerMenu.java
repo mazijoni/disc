@@ -3,48 +3,41 @@ package com.customdiscs.menu;
 import com.customdiscs.registry.ModMenuTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
-import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.item.ItemStack;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class TrainSpeakerMenu extends AbstractContainerMenu {
 
     private final BlockPos blockPos;
-    private final String stationName;
-    private final List<String> stops;
+    private final Map<String, String> customAnnouncements;
 
     /** Server-side constructor */
     public TrainSpeakerMenu(int windowId, BlockPos pos) {
         super(ModMenuTypes.TRAIN_SPEAKER_MENU.get(), windowId);
         this.blockPos = pos;
-        this.stationName = "Unnamed Station";
-        this.stops = Collections.emptyList();
+        this.customAnnouncements = Collections.emptyMap();
     }
 
-    /** Client-side constructor — reads data from the network buffer */
+    /** Client-side constructor */
     public TrainSpeakerMenu(int windowId, BlockPos pos, FriendlyByteBuf buf) {
         super(ModMenuTypes.TRAIN_SPEAKER_MENU.get(), windowId);
         this.blockPos = pos;
-        this.stationName = buf.readUtf(256);
         int n = buf.readVarInt();
-        List<String> list = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) list.add(buf.readUtf(256));
-        this.stops = list;
+        Map<String, String> map = new HashMap<>(n);
+        for (int i = 0; i < n; i++) map.put(buf.readUtf(256), buf.readUtf(512));
+        this.customAnnouncements = map;
     }
 
-    public BlockPos getBlockPos() { return blockPos; }
-    public String getStationName() { return stationName; }
-    public List<String> getStops() { return stops; }
+    public BlockPos getBlockPos()                       { return blockPos; }
+    public Map<String, String> getCustomAnnouncements() { return customAnnouncements; }
 
     @Override
-    public ItemStack quickMoveStack(Player player, int slot) {
-        return ItemStack.EMPTY;
-    }
+    public ItemStack quickMoveStack(Player player, int slot) { return ItemStack.EMPTY; }
 
     @Override
     public boolean stillValid(Player player) {

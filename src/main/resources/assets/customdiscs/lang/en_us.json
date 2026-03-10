@@ -33,5 +33,7 @@
   "block.customdiscs.train_speaker": "Train Announcement Speaker",
   "container.customdiscs.train_speaker": "Train Announcement Speaker",
   "gui.customdiscs.train_speaker.save": "Save",
-  "gui.customdiscs.train_speaker.test": "▶ Test"
+  "gui.customdiscs.train_speaker.test": "▶ Test",
+  "item.customdiscs.station_marker": "Station Zone Marker",
+  "item.customdiscs.station_marker.desc": "Define the announcement zone for a Train Speaker"
 }

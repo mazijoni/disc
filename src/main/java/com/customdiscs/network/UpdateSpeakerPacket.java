@@ -7,50 +7,39 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraftforge.network.NetworkEvent;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Supplier;
 
 /**
- * Client → Server packet sent when the player saves settings in the
- * Train Speaker GUI.  Carries updated station name and stop list.
- * If {@code testAnnounce} is true the server also fires an immediate announcement.
+ * Client → Server: saves per-station custom announcements from the GUI.
  */
 public class UpdateSpeakerPacket {
 
     private final BlockPos pos;
-    private final String stationName;
-    private final List<String> stops;
-    private final boolean testAnnounce;
+    private final Map<String, String> customAnnouncements;
 
-    public UpdateSpeakerPacket(BlockPos pos, String stationName, List<String> stops, boolean testAnnounce) {
-        this.pos          = pos;
-        this.stationName  = stationName;
-        this.stops        = stops;
-        this.testAnnounce = testAnnounce;
+    public UpdateSpeakerPacket(BlockPos pos, Map<String, String> customAnnouncements) {
+        this.pos = pos;
+        this.customAnnouncements = customAnnouncements;
     }
-
-    // ── Codec ─────────────────────────────────────────────────────────────────
 
     public static UpdateSpeakerPacket decode(FriendlyByteBuf buf) {
         BlockPos pos = buf.readBlockPos();
-        String station = buf.readUtf(256);
         int n = buf.readVarInt();
-        List<String> stops = new ArrayList<>(n);
-        for (int i = 0; i < n; i++) stops.add(buf.readUtf(256));
-        boolean test = buf.readBoolean();
-        return new UpdateSpeakerPacket(pos, station, stops, test);
+        Map<String, String> map = new HashMap<>(n);
+        for (int i = 0; i < n; i++) map.put(buf.readUtf(256), buf.readUtf(512));
+        return new UpdateSpeakerPacket(pos, map);
     }
 
     public void encode(FriendlyByteBuf buf) {
         buf.writeBlockPos(pos);
-        buf.writeUtf(stationName, 256);
-        buf.writeVarInt(stops.size());
-        for (String s : stops) buf.writeUtf(s, 256);
-        buf.writeBoolean(testAnnounce);
+        buf.writeVarInt(customAnnouncements.size());
+        for (var e : customAnnouncements.entrySet()) {
+            buf.writeUtf(e.getKey(), 256);
+            buf.writeUtf(e.getValue(), 512);
+        }
     }
-
-    // ── Handler ───────────────────────────────────────────────────────────────
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
         NetworkEvent.Context ctx = ctxSupplier.get();
@@ -60,11 +49,8 @@ public class UpdateSpeakerPacket {
             ServerLevel level = sender.serverLevel();
             BlockEntity be = level.getBlockEntity(pos);
             if (!(be instanceof TrainSpeakerBlockEntity speaker)) return;
-            // Security: only allow if the player is close enough
             if (sender.distanceToSqr(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5) > 64 * 64) return;
-
-            speaker.setData(stationName, stops);
-            if (testAnnounce) speaker.triggerAnnounce(level, pos);
+            speaker.setCustomAnnouncements(customAnnouncements);
         });
         ctx.setPacketHandled(true);
     }

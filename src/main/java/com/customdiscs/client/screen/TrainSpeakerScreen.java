@@ -7,38 +7,29 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
-/**
- * GUI for the Train Announcement Speaker block.
- * Lets the player configure the station name and a list of upcoming stops.
- */
 @OnlyIn(Dist.CLIENT)
 public class TrainSpeakerScreen extends AbstractContainerScreen<TrainSpeakerMenu> {
 
-    private static final int BG_W = 220;
-    private static final int BG_H = 210;
-
-    private EditBox stationField;
-    private EditBox addStopField;
-    private final List<String> stops = new ArrayList<>();
-    private int scrollOffset = 0;
+    private static final int BG_W = 240;
+    private static final int BG_H = 200;
+    private static final int ROW_H = 22;
     private static final int MAX_VISIBLE = 5;
-    private static final int ROW_H = 18;
+
+    private final LinkedHashMap<String, EditBox> stationFields = new LinkedHashMap<>();
+    private EditBox addStationField;
+    private int scrollOffset = 0;
 
     public TrainSpeakerScreen(TrainSpeakerMenu menu, Inventory inv, Component title) {
         super(menu, inv, title);
         this.imageWidth  = BG_W;
         this.imageHeight = BG_H;
-        // Load existing data from the menu (sent from server via openScreen buffer)
-        this.stops.addAll(menu.getStops());
     }
 
     @Override
@@ -47,136 +38,94 @@ public class TrainSpeakerScreen extends AbstractContainerScreen<TrainSpeakerMenu
         int left = (this.width - BG_W) / 2;
         int top  = (this.height - BG_H) / 2;
 
-        // Station name field
-        stationField = new EditBox(this.font, left + 8, top + 28, BG_W - 16, 16,
-                Component.literal("Station name"));
-        stationField.setMaxLength(64);
-        stationField.setValue(this.menu.getStationName());
-        this.addWidget(stationField);
+        stationFields.clear();
+        for (var e : this.menu.getCustomAnnouncements().entrySet())
+            createFieldForStation(e.getKey(), e.getValue(), left, top);
 
-        // "Add stop" field
-        addStopField = new EditBox(this.font, left + 8, top + 76, BG_W - 60, 16,
-                Component.literal("New stop…"));
-        addStopField.setMaxLength(64);
-        this.addWidget(addStopField);
+        addStationField = new EditBox(this.font, left + 8, top + BG_H - 56, BG_W - 60, 14,
+                Component.literal("New station…"));
+        addStationField.setMaxLength(64);
+        addStationField.setHint(Component.literal("Station name...")
+                .withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        this.addWidget(addStationField);
 
-        // Add button
         this.addRenderableWidget(Button.builder(Component.literal("+"), btn -> {
-            String stop = addStopField.getValue().trim();
-            if (!stop.isEmpty()) {
-                stops.add(stop);
-                addStopField.setValue("");
+            String name = addStationField.getValue().trim();
+            if (!name.isEmpty() && !stationFields.containsKey(name)) {
+                createFieldForStation(name, "", left, top);
+                addStationField.setValue("");
             }
-        }).bounds(left + BG_W - 48, top + 76, 18, 16).build());
+        }).bounds(left + BG_W - 48, top + BG_H - 56, 40, 14).build());
 
-        // Scroll up
-        this.addRenderableWidget(Button.builder(Component.literal("▲"), btn -> {
-            if (scrollOffset > 0) scrollOffset--;
-        }).bounds(left + BG_W - 26, top + 100, 18, 16).build());
-
-        // Scroll down
-        this.addRenderableWidget(Button.builder(Component.literal("▼"), btn -> {
-            if (scrollOffset + MAX_VISIBLE < stops.size()) scrollOffset++;
-        }).bounds(left + BG_W - 26, top + 120, 18, 16).build());
-
-        // Remove last stop button
-        this.addRenderableWidget(Button.builder(Component.literal("✕"), btn -> {
-            if (!stops.isEmpty()) stops.remove(stops.size() - 1);
-            if (scrollOffset > 0 && scrollOffset >= stops.size()) scrollOffset--;
-        }).bounds(left + BG_W - 26, top + 140, 18, 16).build());
-
-        // Test Announce button
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.customdiscs.train_speaker.test"), btn -> {
-            sendPacket(true);
-        }).bounds(left + 8, top + BG_H - 32, 96, 18).build());
-
-        // Save button
-        this.addRenderableWidget(Button.builder(Component.translatable("gui.customdiscs.train_speaker.save"), btn -> {
-            sendPacket(false);
-            this.onClose();
-        }).bounds(left + BG_W - 104, top + BG_H - 32, 96, 18).build());
+        this.addRenderableWidget(Button.builder(
+                Component.translatable("gui.customdiscs.train_speaker.save"), btn -> {
+                    sendPacket();
+                    this.onClose();
+                }).bounds(left + BG_W / 2 - 48, top + BG_H - 32, 96, 18).build());
     }
 
-    private void sendPacket(boolean test) {
-        BlockPos pos = this.menu.getBlockPos();
+    private void createFieldForStation(String name, String value, int left, int top) {
+        EditBox box = new EditBox(this.font, left + 80, top, BG_W - 100, 14, Component.literal(name));
+        box.setMaxLength(256);
+        box.setValue(value);
+        box.setHint(Component.literal("Now arriving at " + name)
+                .withStyle(net.minecraft.ChatFormatting.DARK_GRAY));
+        this.addWidget(box);
+        stationFields.put(name, box);
+    }
+
+    private Map<String, String> collectAnnouncements() {
+        Map<String, String> map = new HashMap<>();
+        for (var e : stationFields.entrySet())
+            map.put(e.getKey(), e.getValue().getValue().trim());
+        return map;
+    }
+
+    private void sendPacket() {
         PacketHandler.CHANNEL.sendToServer(
-                new UpdateSpeakerPacket(pos, stationField.getValue().trim(), new ArrayList<>(stops), test));
+                new UpdateSpeakerPacket(this.menu.getBlockPos(), collectAnnouncements()));
     }
-
-    // ── Input handling ────────────────────────────────────────────────────────
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-        // If a text field is focused, all keys (except Escape) go to it — prevents
-        // 'E' from closing the screen while typing.
-        if (stationField != null && stationField.isFocused()) {
-            if (keyCode == 256) { // Escape
-                stationField.setFocused(false);
-                return true;
+        for (EditBox box : stationFields.values()) {
+            if (box.isFocused()) {
+                if (keyCode == 256) { box.setFocused(false); return true; }
+                return box.keyPressed(keyCode, scanCode, modifiers);
             }
-            return stationField.keyPressed(keyCode, scanCode, modifiers);
         }
-        if (addStopField != null && addStopField.isFocused()) {
-            if (keyCode == 256) { // Escape
-                addStopField.setFocused(false);
-                return true;
-            }
-            // Enter key adds the stop
-            if (keyCode == 257 || keyCode == 335) { // Enter / Numpad Enter
-                String stop = addStopField.getValue().trim();
-                if (!stop.isEmpty()) {
-                    stops.add(stop);
-                    addStopField.setValue("");
+        if (addStationField != null && addStationField.isFocused()) {
+            if (keyCode == 256) { addStationField.setFocused(false); return true; }
+            if (keyCode == 257 || keyCode == 335) {
+                String name = addStationField.getValue().trim();
+                if (!name.isEmpty() && !stationFields.containsKey(name)) {
+                    int left = (this.width - BG_W) / 2;
+                    int top  = (this.height - BG_H) / 2;
+                    createFieldForStation(name, "", left, top);
+                    addStationField.setValue("");
                 }
                 return true;
             }
-            return addStopField.keyPressed(keyCode, scanCode, modifiers);
+            return addStationField.keyPressed(keyCode, scanCode, modifiers);
         }
         return super.keyPressed(keyCode, scanCode, modifiers);
     }
 
     @Override
     public boolean charTyped(char c, int modifiers) {
-        if (stationField != null && stationField.isFocused())
-            return stationField.charTyped(c, modifiers);
-        if (addStopField != null && addStopField.isFocused())
-            return addStopField.charTyped(c, modifiers);
+        for (EditBox box : stationFields.values())
+            if (box.isFocused()) return box.charTyped(c, modifiers);
+        if (addStationField != null && addStationField.isFocused())
+            return addStationField.charTyped(c, modifiers);
         return super.charTyped(c, modifiers);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int left = (this.width - BG_W) / 2;
-        int top  = (this.height - BG_H) / 2;
-
-        // Focus handling: click on a field → focus it, click elsewhere → unfocus
-        if (stationField != null) {
-            stationField.setFocused(
-                mouseX >= stationField.getX() && mouseX < stationField.getX() + stationField.getWidth() &&
-                mouseY >= stationField.getY() && mouseY < stationField.getY() + stationField.getHeight());
-        }
-        if (addStopField != null) {
-            addStopField.setFocused(
-                mouseX >= addStopField.getX() && mouseX < addStopField.getX() + addStopField.getWidth() &&
-                mouseY >= addStopField.getY() && mouseY < addStopField.getY() + addStopField.getHeight());
-        }
-
-        // Check individual row ✕ buttons
-        for (int i = 0; i < MAX_VISIBLE; i++) {
-            int idx = i + scrollOffset;
-            if (idx >= stops.size()) break;
-            int y = top + 98 + i * ROW_H;
-            if (mouseX >= left + BG_W - 56 && mouseX <= left + BG_W - 32 &&
-                    mouseY >= y + 1 && mouseY <= y + ROW_H - 1) {
-                stops.remove(idx);
-                if (scrollOffset > 0 && scrollOffset >= stops.size()) scrollOffset--;
-                return true;
-            }
-        }
-        return super.mouseClicked(mouseX, mouseY, button);
+    public boolean mouseScrolled(double mouseX, double mouseY, double delta) {
+        int maxScroll = Math.max(0, stationFields.size() - MAX_VISIBLE);
+        scrollOffset = (int) Math.max(0, Math.min(maxScroll, scrollOffset - delta));
+        return true;
     }
-
-    // ── Rendering ─────────────────────────────────────────────────────────────
 
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
@@ -185,45 +134,42 @@ public class TrainSpeakerScreen extends AbstractContainerScreen<TrainSpeakerMenu
         int left = (this.width - BG_W) / 2;
         int top  = (this.height - BG_H) / 2;
 
-        // Background panel
         g.fill(left, top, left + BG_W, top + BG_H, 0xCC1A1A2E);
         g.fill(left, top, left + BG_W, top + 1, 0xFF5599FF);
         g.fill(left, top, left + 1, top + BG_H, 0xFF5599FF);
         g.fill(left + BG_W - 1, top, left + BG_W, top + BG_H, 0xFF5599FF);
         g.fill(left, top + BG_H - 1, left + BG_W, top + BG_H, 0xFF5599FF);
 
-        // Title
-        g.drawString(this.font, "Train Announcement Speaker", left + 8, top + 8, 0xFFFFFF);
+        g.drawString(this.font, "Train Announcement Speaker", left + 8, top + 6, 0xFFFFFF);
+        g.drawString(this.font, "Per-Station Announcements:", left + 8, top + 20, 0xAAAAAA);
 
-        // Labels
-        g.drawString(this.font, "Station Name:", left + 8, top + 18, 0xAAAAAA);
-        g.drawString(this.font, "Add Stop:", left + 8, top + 66, 0xAAAAAA);
+        List<Map.Entry<String, EditBox>> entries = new ArrayList<>(stationFields.entrySet());
+        int listTop = top + 34;
+        for (int i = 0; i < MAX_VISIBLE && i + scrollOffset < entries.size(); i++) {
+            var entry = entries.get(i + scrollOffset);
+            int y = listTop + i * ROW_H;
+            String label = entry.getKey();
+            if (this.font.width(label) > 68)
+                label = this.font.plainSubstrByWidth(label, 62) + "...";
+            g.drawString(this.font, label, left + 8, y + 3, 0x88CCFF);
 
-        // Stop list box
-        g.fill(left + 8, top + 96, left + BG_W - 30, top + 96 + MAX_VISIBLE * ROW_H + 4, 0xFF0D0D1A);
-        for (int i = 0; i < MAX_VISIBLE; i++) {
-            int idx = i + scrollOffset;
-            if (idx >= stops.size()) break;
-            int y = top + 98 + i * ROW_H;
-            String label = (idx + 1) + ". " + stops.get(idx);
-            g.drawString(this.font, label, left + 12, y + 4, 0xFFFFFF);
-            // Per-row remove button
-            g.fill(left + BG_W - 56, y + 1, left + BG_W - 32, y + ROW_H - 1, 0x88CC2222);
-            g.drawCenteredString(this.font, "x", left + BG_W - 44, y + 5, 0xFFAAAA);
+            EditBox box = entry.getValue();
+            box.setX(left + 80); box.setY(y); box.setWidth(BG_W - 100);
+            box.visible = true;
+            box.render(g, mouseX, mouseY, partialTick);
         }
+        for (int i = 0; i < entries.size(); i++) {
+            if (i < scrollOffset || i >= scrollOffset + MAX_VISIBLE)
+                entries.get(i).getValue().visible = false;
+        }
+        if (entries.size() > MAX_VISIBLE)
+            g.drawString(this.font, "▲▼ scroll", left + BG_W - 60, listTop + MAX_VISIBLE * ROW_H + 2, 0x666666);
 
-        // Render text fields
-        stationField.render(g, mouseX, mouseY, partialTick);
-        addStopField.render(g, mouseX, mouseY, partialTick);
+        g.fill(left + 4, top + BG_H - 66, left + BG_W - 4, top + BG_H - 65, 0xFF5599FF);
+        g.drawString(this.font, "Add Station:", left + 8, top + BG_H - 62, 0xAAAAAA);
+        addStationField.render(g, mouseX, mouseY, partialTick);
     }
 
-    @Override
-    protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {
-        // Background drawn in render()
-    }
-
-    @Override
-    protected void renderLabels(GuiGraphics g, int mouseX, int mouseY) {
-        // Labels drawn in render() with absolute coords
-    }
+    @Override protected void renderBg(GuiGraphics g, float partialTick, int mouseX, int mouseY) {}
+    @Override protected void renderLabels(GuiGraphics g, int mouseX, int mouseY) {}
 }

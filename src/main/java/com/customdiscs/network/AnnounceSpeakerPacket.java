@@ -1,71 +1,60 @@
 package com.customdiscs.network;
 
+import com.customdiscs.DiscMod;
 import com.customdiscs.client.EdgeTtsClient;
+import com.customdiscs.registry.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.fml.DistExecutor;
+import net.minecraftforge.api.distmarker.OnlyIn;
 import net.minecraftforge.network.NetworkEvent;
 
 import java.util.function.Supplier;
 
-import com.customdiscs.registry.ModSounds;
-
 /**
- * Server → Client packet sent when a Train Speaker speaker fires an announcement.
- * On the client it plays the chime sound, shows a subtitle, then calls
- * {@link EdgeTtsClient} to synthesise and play the spoken announcement.
+ * Server → Client: plays a ding, shows a subtitle, and triggers TTS.
+ * Now receives station name + full announcement text.
  */
 public class AnnounceSpeakerPacket {
 
-    private final String station;
-    private final String nextStop;
+    private final String stationName;
+    private final String announcement;
 
-    public AnnounceSpeakerPacket(String station, String nextStop) {
-        this.station  = station;
-        this.nextStop = nextStop;
+    public AnnounceSpeakerPacket(String stationName, String announcement) {
+        this.stationName  = stationName;
+        this.announcement = announcement;
     }
 
-    // ── Codec ─────────────────────────────────────────────────────────────────
-
     public static AnnounceSpeakerPacket decode(FriendlyByteBuf buf) {
-        return new AnnounceSpeakerPacket(buf.readUtf(256), buf.readUtf(256));
+        return new AnnounceSpeakerPacket(buf.readUtf(256), buf.readUtf(512));
     }
 
     public void encode(FriendlyByteBuf buf) {
-        buf.writeUtf(station,  256);
-        buf.writeUtf(nextStop, 256);
+        buf.writeUtf(stationName, 256);
+        buf.writeUtf(announcement, 512);
     }
-
-    // ── Handler ───────────────────────────────────────────────────────────────
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
-        NetworkEvent.Context ctx = ctxSupplier.get();
-        ctx.enqueueWork(() ->
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> handleClient(station, nextStop))
-        );
-        ctx.setPacketHandled(true);
+        ctxSupplier.get().enqueueWork(this::handleClient);
+        ctxSupplier.get().setPacketHandled(true);
     }
 
-    private static void handleClient(String station, String nextStop) {
+    @OnlyIn(Dist.CLIENT)
+    private void handleClient() {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        // 1. Play the chime sound
-        mc.player.playSound(ModSounds.DING.get(), 1.0f, 1.0f);
+        // Play ding chime
+        mc.player.playNotifySound(
+                ModSounds.DING.get(), SoundSource.BLOCKS, 1.0f, 1.0f);
 
-        // 2. Build announcement text and show as subtitle
-        String announcementText = nextStop.isEmpty()
-                ? "Now arriving at " + station + "."
-                : "Now arriving at " + station + ". Next stop: " + nextStop + ".";
+        // Show action-bar subtitle with station name
         mc.player.displayClientMessage(
-                Component.literal("§l[" + station + "]§r §e" + (nextStop.isEmpty() ? "Terminal station." : "Next: §f" + nextStop)),
-                true  // show as action bar overlay
-        );
+                Component.literal("§e§l[" + stationName + "] §r§f" + announcement), true);
 
-        // 3. Speak asynchronously via Edge TTS (neural voice, no API key)
-        EdgeTtsClient.speak(announcementText);
+        // Trigger TTS
+        EdgeTtsClient.speak(announcement);
     }
 }
