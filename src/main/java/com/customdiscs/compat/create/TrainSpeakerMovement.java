@@ -71,20 +71,23 @@ public class TrainSpeakerMovement implements MovementBehaviour {
         String stationName = dest.getFilter();
         if (stationName == null || stationName.isEmpty()) return;
 
-        // ── Read per-station custom announcement from BE NBT ──────────────
+        // ── Build announcement from format template + per-station message ─────
+        String globalFormat = com.customdiscs.block.TrainSpeakerBlockEntity.DEFAULT_FORMAT;
         String customMsg = "";
         if (context.blockEntityData != null) {
+            if (context.blockEntityData.contains("GlobalFormat"))
+                globalFormat = context.blockEntityData.getString("GlobalFormat");
             CompoundTag annTags = context.blockEntityData.getCompound("CustomAnnouncements");
-            if (annTags.contains(stationName)) {
+            if (annTags.contains(stationName))
                 customMsg = annTags.getString(stationName);
-            }
         }
+        if (customMsg.isEmpty()) customMsg = "Now arriving at " + stationName;
 
-        String announcement = (customMsg != null && !customMsg.isEmpty())
-                ? customMsg
-                : "Now arriving at " + stationName;
+        String announcement = globalFormat
+                .replace("{station}", stationName)
+                .replace("{message}", customMsg);
 
-        // ── Send packet to all players: passengers AND nearby standing players ──
+        // ── Send to all players: passengers AND nearby standing players ────────
         AnnounceSpeakerPacket packet = new AnnounceSpeakerPacket(stationName, announcement);
         Set<UUID> notified = new HashSet<>();
 

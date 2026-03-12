@@ -1,5 +1,6 @@
 package com.customdiscs.menu;
 
+import com.customdiscs.block.TrainSpeakerBlockEntity;
 import com.customdiscs.registry.ModMenuTypes;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.FriendlyByteBuf;
@@ -14,19 +15,22 @@ import java.util.Map;
 public class TrainSpeakerMenu extends AbstractContainerMenu {
 
     private final BlockPos blockPos;
+    private final String globalFormat;
     private final Map<String, String> customAnnouncements;
 
     /** Server-side constructor */
     public TrainSpeakerMenu(int windowId, BlockPos pos) {
         super(ModMenuTypes.TRAIN_SPEAKER_MENU.get(), windowId);
         this.blockPos = pos;
+        this.globalFormat = TrainSpeakerBlockEntity.DEFAULT_FORMAT;
         this.customAnnouncements = Collections.emptyMap();
     }
 
-    /** Client-side constructor */
+    /** Client-side constructor — reads from the network buffer */
     public TrainSpeakerMenu(int windowId, BlockPos pos, FriendlyByteBuf buf) {
         super(ModMenuTypes.TRAIN_SPEAKER_MENU.get(), windowId);
         this.blockPos = pos;
+        this.globalFormat = buf.readUtf(512);
         int n = buf.readVarInt();
         Map<String, String> map = new HashMap<>(n);
         for (int i = 0; i < n; i++) map.put(buf.readUtf(256), buf.readUtf(512));
@@ -34,6 +38,7 @@ public class TrainSpeakerMenu extends AbstractContainerMenu {
     }
 
     public BlockPos getBlockPos()                       { return blockPos; }
+    public String getGlobalFormat()                     { return globalFormat; }
     public Map<String, String> getCustomAnnouncements() { return customAnnouncements; }
 
     @Override

@@ -19,21 +19,49 @@ import java.util.Map;
 /**
  * Block entity for the Train Announcement Speaker.
  * <p>
- * Stores a map of station-name → custom announcement text.
- * The {@link com.customdiscs.compat.create.TrainSpeakerMovement} reads
- * this data from the block entity's NBT during contraption ticking.
+ * Stores:
+ * <ul>
+ *   <li>A global announcement format string with {@code {station}} and {@code {message}}
+ *       placeholders and {@code §} color codes.</li>
+ *   <li>Per-station custom message text (also supports {@code §} codes).</li>
+ * </ul>
+ * <p>
+ * Default format: {@code §e§l[ {station} ]§r §f{message}}
  */
 public class TrainSpeakerBlockEntity extends BlockEntity implements MenuProvider {
 
-    /**
-     * Per-station custom announcements. Key = station name, value = custom text.
-     * Empty value = use default "Now arriving at …" message.
-     */
+    /** Default action-bar format. Supports § codes and {station}/{message} placeholders. */
+    public static final String DEFAULT_FORMAT = "§e§l[ {station} ]§r §f{message}";
+
+    private String globalFormat = DEFAULT_FORMAT;
     private final Map<String, String> customAnnouncements = new HashMap<>();
 
     public TrainSpeakerBlockEntity(BlockPos pos, BlockState state) {
         super(ModBlockEntities.TRAIN_SPEAKER_BE.get(), pos, state);
     }
+
+    // ── Format ───────────────────────────────────────────────────────────────
+
+    public String getGlobalFormat() { return globalFormat; }
+
+    public void setGlobalFormat(String fmt) {
+        this.globalFormat = (fmt == null || fmt.isBlank()) ? DEFAULT_FORMAT : fmt;
+        setChanged();
+    }
+
+    /**
+     * Builds the final announcement string for the given station.
+     * Applies the global format template, substituting placeholders.
+     */
+    public String buildAnnouncement(String stationName) {
+        String message = customAnnouncements.getOrDefault(stationName, "");
+        if (message.isEmpty()) message = "Now arriving at " + stationName;
+        return globalFormat
+                .replace("{station}", stationName)
+                .replace("{message}", message);
+    }
+
+    // ── Custom announcements ─────────────────────────────────────────────────
 
     public Map<String, String> getCustomAnnouncements() { return customAnnouncements; }
 
@@ -43,8 +71,11 @@ public class TrainSpeakerBlockEntity extends BlockEntity implements MenuProvider
         setChanged();
     }
 
+    // ── NBT ───────────────────────────────────────────────────────────────────
+
     @Override
     public void saveAdditional(CompoundTag tag) {
+        tag.putString("GlobalFormat", globalFormat);
         CompoundTag annTag = new CompoundTag();
         for (var e : customAnnouncements.entrySet())
             annTag.putString(e.getKey(), e.getValue());
@@ -54,11 +85,15 @@ public class TrainSpeakerBlockEntity extends BlockEntity implements MenuProvider
     @Override
     public void load(CompoundTag tag) {
         super.load(tag);
+        if (tag.contains("GlobalFormat"))
+            globalFormat = tag.getString("GlobalFormat");
         customAnnouncements.clear();
         CompoundTag annTag = tag.getCompound("CustomAnnouncements");
         for (String key : annTag.getAllKeys())
             customAnnouncements.put(key, annTag.getString(key));
     }
+
+    // ── MenuProvider ─────────────────────────────────────────────────────────
 
     @Override
     public Component getDisplayName() {

@@ -1,11 +1,9 @@
 package com.customdiscs.network;
 
-import com.customdiscs.DiscMod;
-import com.customdiscs.client.EdgeTtsClient;
-import com.customdiscs.registry.ModSounds;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
@@ -14,8 +12,8 @@ import net.minecraftforge.network.NetworkEvent;
 import java.util.function.Supplier;
 
 /**
- * Server → Client: plays a ding, shows a subtitle, and triggers TTS.
- * Now receives station name + full announcement text.
+ * Server → Client: plays a bell chime and shows a styled action-bar announcement.
+ * Text-to-speech has been removed. The announcement text supports Minecraft § color codes.
  */
 public class AnnounceSpeakerPacket {
 
@@ -37,8 +35,9 @@ public class AnnounceSpeakerPacket {
     }
 
     public void handle(Supplier<NetworkEvent.Context> ctxSupplier) {
-        ctxSupplier.get().enqueueWork(this::handleClient);
-        ctxSupplier.get().setPacketHandled(true);
+        NetworkEvent.Context ctx = ctxSupplier.get();
+        ctx.enqueueWork(this::handleClient);
+        ctx.setPacketHandled(true);
     }
 
     @OnlyIn(Dist.CLIENT)
@@ -46,15 +45,12 @@ public class AnnounceSpeakerPacket {
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null) return;
 
-        // Play ding chime
-        mc.player.playNotifySound(
-                ModSounds.DING.get(), SoundSource.BLOCKS, 1.0f, 1.0f);
+        // Play a chime using the XP orb sound (clear ping, definitely valid in 1.20.1)
+        mc.player.playNotifySound(SoundEvents.EXPERIENCE_ORB_PICKUP, SoundSource.MASTER, 1.0f, 1.5f);
 
-        // Show action-bar subtitle with station name
+        // Show styled announcement on the action bar
+        // The announcement string already has § color codes applied by the server
         mc.player.displayClientMessage(
-                Component.literal("§e§l[" + stationName + "] §r§f" + announcement), true);
-
-        // Trigger TTS
-        EdgeTtsClient.speak(announcement);
+                Component.literal(announcement), true);
     }
 }

@@ -79,6 +79,7 @@ public class TrainSpeakerBlock extends BaseEntityBlock {
             if (be instanceof TrainSpeakerBlockEntity speakerBE && player instanceof ServerPlayer sp) {
                 NetworkHooks.openScreen(sp, speakerBE, buf -> {
                     buf.writeBlockPos(pos);
+                    buf.writeUtf(speakerBE.getGlobalFormat(), 512);
                     Map<String, String> ann = speakerBE.getCustomAnnouncements();
                     buf.writeVarInt(ann.size());
                     for (var e : ann.entrySet()) {
