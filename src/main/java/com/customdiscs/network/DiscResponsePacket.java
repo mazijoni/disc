@@ -1,7 +1,5 @@
 package com.customdiscs.network;
 
-import com.customdiscs.client.screen.DiscRecorderScreen;
-import net.minecraft.client.Minecraft;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.fml.DistExecutor;
@@ -26,11 +24,8 @@ public class DiscResponsePacket {
 
     public static void handle(DiscResponsePacket pkt, Supplier<NetworkEvent.Context> ctx) {
         ctx.get().enqueueWork(() ->
-                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () -> {
-                    if (Minecraft.getInstance().screen instanceof DiscRecorderScreen screen) {
-                        screen.handleServerResponse(pkt.message);
-                    }
-                })
+                DistExecutor.unsafeRunWhenOn(Dist.CLIENT, () -> () ->
+                        ClientPacketHandler.handleDiscResponse(pkt.message))
         );
         ctx.get().setPacketHandled(true);
     }
